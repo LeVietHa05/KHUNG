@@ -113,17 +113,17 @@ void setup() {
 void loop() {
   if (digitalRead(nutnhan1) == LOW && !flag_huyetap_running) {
     delay(20);
-    time_press_btn = millis();
+    time_press_btn = millis();  //đếm thời gian bấm nút
     while (digitalRead(nutnhan1) == LOW) {
     }
-    if ((millis() - time_press_btn) > 1000 && (millis() - time_press_btn) < 3000) {
-      start = !start;
-      digitalWrite(coi, LOW);
+    if ((millis() - time_press_btn) > 1000 && (millis() - time_press_btn) < 3000) {  //nếu bấm từ 1 - 3 s
+      start = !start;                                                                //đảo start về stop và ngược lại
+      digitalWrite(coi, LOW);                                                        //bật còi trong 0.5s
       delay(500);
       digitalWrite(coi, HIGH);
     }
-    if (millis() - time_press_btn > 4000) {
-      mode++;
+    if (millis() - time_press_btn > 4000) {  //nếu bấm > 4s
+      mode++;                                //mode từ 0 -> 1 và ngược lại
       if (mode == 2) {
         mode = 0;
       }
@@ -132,14 +132,14 @@ void loop() {
       delay(1000);
       digitalWrite(coi, HIGH);
     }
-    if (mode == 0 && start) {
+    if (mode == 0 && start) {  //nếu đang đếm giọt
       Serial.println("Dem giot: START ");
       lcd.clear();
       lcd.print("Dem giot: START ");
       check5s = millis();
       check10s = millis();
       dem_t = millis();
-    } else if (mode == 0 && !start) {
+    } else if (mode == 0 && !start) {  //nếu đang đếm giọt và stop
       Serial.println("Dem giot: STOP  ");
       lcd.clear();
       lcd.print("Dem giot: STOP  ");
@@ -148,78 +148,79 @@ void loop() {
       lcd.print(tocdocai);
       // lcd.print("/phut   ");
       dem_t = millis();
-    } else if (mode == 1 && start && !flag_huyetap) {
+    } else if (mode == 1 && start && !flag_huyetap) {  //nếu đo huyết áp và start
       Serial.println("HUYET AP: START ");
       lcd.clear();
       lcd.print("HUYET AP: START ");
-      flag_huyetap_running = true;
+      flag_huyetap_running = true;  //reset các biến đo liên quan đến huyết áp
       is_pressure_done = false;
       reached_140_mmhg = false;
       downto_60_mmhg = false;
       flag_pumb = true;
       time_without_pulse = millis();
-    } else if (mode == 1 && !start && !flag_huyetap) {
+    } else if (mode == 1 && !start && !flag_huyetap) {  //nếu đo huyết áp và stop
       flag_huyetap_running = false;
       Serial.println("HUYET AP: STOP  ");
       lcd.clear();
       lcd.print("HUYET AP: STOP  ");
       lcd.setCursor(0, 1);
-      lcd.print("SBP: ");
+      lcd.print("SBP: ");  //in ra các giá trị huyết áp tâm trương và tâm thu của lần đo trước đó
       lcd.print(sbp);
       lcd.print(" DBP: ");
       lcd.print(dbp);
       time_without_pulse = millis();
-    } else if (mode == 1 && flag_huyetap) {
+    } else if (mode == 1 && flag_huyetap) {  //nếu đo huyết áp và cảm biến lỗi
       Serial.println("HUYET AP: ERROR");
       lcd.clear();
       lcd.print("HUYET AP: ERROR");
       delay(3000);
-      mode = 0;
+      mode = 0;  //trở về đếm giọt
       start = false;
     }
   }
-  if (start && mode == 0) {
-    // cap nhat nguong
-    for (int i = 0; i < 3; i++) {
+  if (start && mode == 0) {  //nếu đếm giọt và start
+    // cap nhat nguong bằng cách tính giá trị trung bình của 3 lần đo
+    for (int i = 0; i < 3; i++) {  //đo 3 lần liên tiếp các giá trị trả về của led thu
       nguong_tong += analogRead(LED_THU);
       delay(1);
     }
-    if (millis() - last_update_nguong > 3000) {   // cap nhat nguong moi 3s
-      if (abs((nguong_tong / 3) - value) > 20) {  // neu gia tri nguong thay doi qua nhieu thi cap nhat lai
-        value = nguong_tong / 3;
+    if (millis() - last_update_nguong > 3000) {   // cập nhật ngưỡng mỗi 3s/1 lần
+      if (abs((nguong_tong / 3) - value) > 20) {  // cái này là để tránh ngưỡng cập nhật mấy con số nhỏ kiểu, ngưỡng từ 220 -> 230 thì thôi. chỉ cập nhật các giá trị ngưỡng theo kiểu 220 -> 300.
+        value = nguong_tong / 3;                  //chia trung bình này
       }
       last_update_nguong = millis();
     }
-    nguong_tong = 0;
+    nguong_tong = 0;  //reset cái ngưỡng tổng để tránh nó bị tăng quá nhiều theo thời gian (vì ngưỡng của mình tính theo cách trung bình, tổng mà lên vô hạn thì chết)
 
-#ifdef DEMGIOT
+#ifdef DEMGIOT  //cái này là để debug code thôi, không cần quan tâm đâu
     // dung serial plotter de debug
     // Serial.print("value:  ");
     Serial.print(value + 30);
     Serial.print(" ");
     // Serial.print("analogRead(LED_THU): ");
     Serial.println(analogRead(LED_THU));
-#endif  // DEBUG
-    if (analogRead(LED_THU) > value + 30) {
-      t = millis() - dem_t;
-      dem_t = millis();
-      int tocdotam = int(60000 / t);
+#endif                                       // DEBUG
+    if (analogRead(LED_THU) > value + 30) {  //đây, đoạn này sẽ bắt đầu tìm xem có giọt nhỏ qua.
+                                             //cái analogRead(LED_THU) là cái giá trị thu được từ led thu, value là ngưỡng tính trung bình ở trên. +30 là để đảm bảo không có nhiễu.
+      t = millis() - dem_t;                  //thời gian giữa 2 lần có giọt
+      dem_t = millis();                      // lưu lại thời gian lần trước có giọt để tính
+      int tocdotam = int(60000 / t);         //tính tốc độ bằng cách lấy 60000ms chia cho thời gian giữa 2 lần có giọt
 
-      if (abs(tocdotam - tocdo) > tocdo / 3 && tocdotam < 200) {
+      if (abs(tocdotam - tocdo) > tocdo / 3 && tocdotam < 200) {  //thuật toán chống nhiễu
         if (abs(tocdotam - tocdocu) < 10)
           tocdo = tocdotam;
         tocdocu = tocdotam;
       }
-      if (abs(tocdotam - tocdo) < 5) {
+      if (abs(tocdotam - tocdo) < 5) {  //thuật toán cập nhật
         tocdo = tocdotam;
         tocdocu = tocdotam;
       }
 
-      check5s = millis();
+      check5s = millis();  //làm mới các biến khi có giọt
       check10s = millis();
       delay(20);
     }
-  } else if (mode == 0 && !start) {
+  } else if (mode == 0 && !start) {  //nếu đếm giọt và stop
 #ifdef ESP_UART
     if (Serial3.available() > 0) {
       delay(10);
@@ -235,10 +236,10 @@ void loop() {
       }
     }
 #endif
-    if (digitalRead(nutnhan2) == LOW) {
+    if (digitalRead(nutnhan2) == LOW) {  //nếu nhấp nút đỏ
       delay(20);
       while (digitalRead(nutnhan2) == LOW) {
-        tocdocai++;
+        tocdocai++;  //tăng
         lcd.setCursor(0, 1);
         lcd.print("Toc do cai: ");
         lcd.print(tocdocai);
@@ -252,11 +253,11 @@ void loop() {
       EEPROM.write(0, tocdocai >> 8);
       EEPROM.write(1, tocdocai);
     }
-    if (digitalRead(nutnhan3) == LOW) {
+    if (digitalRead(nutnhan3) == LOW) {  //nếu nhấn nút đỏ
       delay(20);
       while (digitalRead(nutnhan3) == LOW) {
         if (tocdocai > 0)
-          tocdocai--;
+          tocdocai--;  //giảm đến 0
         lcd.setCursor(0, 1);
         lcd.print("Toc do cai: ");
         lcd.print(tocdocai);
@@ -271,7 +272,7 @@ void loop() {
       EEPROM.write(1, tocdocai);
     }
   }
-  if (millis() - show > 300 && start && mode == 0) {
+  if (millis() - show > 300 && start && mode == 0) {  //in ra tốc độ nhỏ giọt đo được
     if (tocdo > 200) {
       lcd.home();
       lcd.print("     START      ");
@@ -284,7 +285,7 @@ void loop() {
       lcd.setCursor(0, 1);
       lcd.print("Toc do:");
       lcd.print(tocdo);
-      lcd.print("g/p   ");
+      lcd.print(" g/p   ");
     }
     show = millis();
   }
@@ -299,7 +300,7 @@ void loop() {
   if (millis() - check5s > 5000 && start && mode == 0) {
     tocdo = 0;
   }
-  if (millis() - check10s > 10000 && start && mode == 0) {
+  if (millis() - check10s > 10000 && start && mode == 0) {  //nếu 10s không có giọt
     lcd.clear();
     lcd.print("      STOP      ");
     lcd.setCursor(0, 1);
@@ -309,7 +310,7 @@ void loop() {
     digitalWrite(coi, 1);
     start = false;
     Serial.print("Het nuoc");
-    while (1) {
+    while (1) {  //dừng chương trình cho đến khi nhấn nút xanh
       if (digitalRead(nutnhan1) == 0) {
         delay(20);
         while (digitalRead(nutnhan1) == 0)
@@ -318,25 +319,25 @@ void loop() {
       }
     }
   }
-  if (mode == 1 && start && !flag_huyetap && flag_huyetap_running && !is_pressure_done) {
-    if (flag_pumb && !is_pressure_done)  // bat dau bom khi vao
+  if (mode == 1 && start && !flag_huyetap && flag_huyetap_running && !is_pressure_done) {  //nếu đo huyết áp và start và chưa đo xong và có cảm biến  và đang đo huyết áp
+    if (flag_pumb && !is_pressure_done)                                                    // bat dau bom khi vao
     {
       digitalWrite(VALVE_PIN, HIGH);  //dong van
       digitalWrite(PUMB_PIN, HIGH);   //bat may bom
       flag_pumb = false;              //moi lan do huyet ap chi bat 1 lan
     }
-    pressSensor.readRawSensor(temperature, pressure);
+    pressSensor.readRawSensor(temperature, pressure);  //đo áp suất
     temperature = temperature / 256;
-    pressure = pressure / K;
-    mmHg_kalman_tam = bo_loc.updateEstimate(pressure * 0.00750061683);
-#ifdef HUYETAP
+    pressure = pressure / K;                                            //chia áp suất theo hệ số có trước
+    mmHg_kalman_tam = bo_loc.updateEstimate(pressure * 0.00750061683);  //đổi đơn vị từ Pa sang mmHg và đưa qua bộ lọc
+#ifdef HUYETAP                                                          //debug
     Serial.print("ap suat: ");
     Serial.println(mmHg_kalman_tam);
 #endif  // HUYETAP
     lcd.setCursor(0, 1);
     lcd.print("ap suat: ");
-    lcd.print(String(mmHg_kalman_tam, 1));
-    if (mmHg_kalman_tam > 160.0) {  //dat nguong 160mmhg
+    lcd.print(String(mmHg_kalman_tam, 1));  //in ra áp suất hiện tại
+    if (mmHg_kalman_tam > 160.0) {          //dat nguong 160mmhg, kết thúc quá trình bơm, bắt đầu quá trình xả
       reached_140_mmhg = true;
       digitalWrite(PUMB_PIN, LOW);  //tat bom
       delay(2000);
@@ -405,21 +406,29 @@ void loop() {
       selectionSort(mmHg_kalman, 100);  // thuật toán sắp xếp
       sbp = mmHg_kalman[99];
       dbp = mmHg_kalman[0];
-      if (dbp == 0.0) {
-        dbp = random(59, 65);
+      if (dbp == 0.0) {  //tránh trường hợp dbp = 0
+        for (int i = 0; i < 100; i++) {
+          dbp = mmHg_kalman[i];
+          if (dbp != 0.0) {
+            break;
+          }
+        }
       }
+      // if (dbp == 0.0) {
+      //   dbp = random(59, 65);
+      // }
       downto_60_mmhg = false;  //kết thúc chu trình xả khí
       is_pressure_done = true;
       delay(100);
 #ifdef ESP_UART
       Serial3.print("S2=");
       Serial3.print(sbp);
-      Serial3.print("S3=");
+      Serial3.print(", S3=");
       Serial3.print(dbp);
 #endif
     }
-    if (is_pressure_done) {
-      flag_huyetap_running = false;
+    if (is_pressure_done) { //kết thức quá trình đo huyết áp
+      flag_huyetap_running = false; //reset các biến về giá trị ban đầu để sẵn sàng cho lần đo tiếp theo 
       start = false;
       upper_pressure = 0.0;
       lower_pressure = 0.0;

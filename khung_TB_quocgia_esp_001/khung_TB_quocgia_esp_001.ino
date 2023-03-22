@@ -43,9 +43,9 @@ float latitude;   //Storing the Latitude
 float longitude;  //Storing the Longitude
 float nhiptim, oxy, nhietdo, khoangcach;
 float dis1, dis2, dis3;
-unsigned int move_index = 1;  // fixed location for now
-String phoneNumber1 = "981229399";
-String phoneNumber2 = "369677432";
+unsigned int move_index = 1;        // fixed location for now
+String phoneNumber1 = "912294662";  //981229399
+String phoneNumber2 = "866559833";  //369677432
 int notify = 0;
 char buff[100];
 

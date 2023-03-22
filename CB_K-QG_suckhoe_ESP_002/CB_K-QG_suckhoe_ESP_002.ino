@@ -14,6 +14,7 @@
 
 #define GPSBaud 9600  //toc do giao tiep voi gps
 #define SIMBaud 9600  //toc do giao tiep voi SIM
+#define DEBUG
 
 TinyGPSPlus gps;
 SoftwareSerial mygps(RXPin, TXPin);
@@ -29,6 +30,7 @@ String phoneNumber1 = "834217367";
 String phoneNumber2 = "902055664";
 
 long lastSend = 0;
+String buffer = "";
 
 void setup() {
   Serial.begin(115200);
@@ -38,7 +40,9 @@ void setup() {
     WiFi.softAPdisconnect(true);
   }
   wifiMulti.addAP("Cút lộn xào me", "12345678");  //bao chi kiem doi ten lai
-  wifiMulti.addAP("AmericanStudy T1, 66668888");
+  wifiMulti.addAP("AmericanStudy T1", "66668888");
+  wifiMulti.addAP("###", "hhhhh123");
+  wifiMulti.addAP("MILANO GUEST", "66668888");
   while (wifiMulti.run() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);
@@ -71,26 +75,17 @@ void loop() {
     lastSend = millis();
   }
   while (Serial.available() > 0) {
-    String buffer = "";
     buffer = Serial.readString();
+    //"Buffer":"Humid: 55.00%, Temp: 28.70CHeart rate: 0.00bpm, SpO2: 0.00%, Object temp: 23.81C\r\nNhiptim: 0.00bpm, Oxy: 0.00%, Nhietdo: 23.81CDust density: 0.00 ug/m3\r\nDust density: 0.00ug/m3MQ2 ppm: inf ppm\r\nMQ2 ppm:  INFppmMQ135 ppm: inf ppm\r\nMQ135 ppm:  INFppm"}]
 
-    khoangcach = buffer.substring(5, buffer.indexOf(";")).toFloat();
-    notify = buffer.substring(buffer.indexOf("noti") + 6, buffer.indexOf(";", buffer.indexOf(";") + 1)).toInt();
-    if (notify == 1) {
-      if (phoneNumber1.length() == 9)
-        guiTinNhan(phoneNumber1);
-      if (phoneNumber2.length() == 9)
-        guiTinNhan(phoneNumber2);
-    }
-    //do uno khong duoc nap code nen doan nay se khong chay, dung phien ban code 002
-    humid = buffer.substring(buffer.indexOf("airHumid") + 10, buffer.indexOf("airTemp") - 1).toFloat();
-    temp = buffer.substring(buffer.indexOf("airTemp") + 9, buffer.indexOf("nhiptim") - 1).toFloat();
-    nhiptim = buffer.substring(buffer.indexOf("nhiptim") + 9, buffer.indexOf("nhietdo") - 1).toFloat();
-    nhietdo = buffer.substring(buffer.indexOf("nhietdo") + 9, buffer.indexOf("oxy") - 1).toFloat();
-    oxy = buffer.substring(buffer.indexOf("oxy") + 5, buffer.indexOf("mq2") - 1).toFloat(); 
-    mq2 = buffer.substring(buffer.indexOf("mq2") + 5, buffer.indexOf("mq135") - 1).toFloat();
-    mq135 = buffer.substring(buffer.indexOf("mq135") + 7, buffer.indexOf("dust") - 1).toFloat();
-    dust = buffer.substring(buffer.indexOf("dust") + 6,  buffer.lastIndexOf(";")).toFloat();
+    humid = buffer.substring(buffer.indexOf("Humid") + 7, buffer.indexOf("%, Temp")).toFloat();
+    temp = buffer.substring(buffer.indexOf("Temp") + 6, buffer.indexOf("CHeart")).toFloat();
+    nhiptim = buffer.substring(buffer.indexOf("rate: ") + 6, buffer.indexOf("bpm,")).toFloat();
+    oxy = buffer.substring(buffer.indexOf("SpO2: ") + 6, buffer.indexOf("%, O")).toFloat();
+    nhietdo = buffer.substring(buffer.indexOf("Nhietdo:") + 9, buffer.indexOf("CDust")).toFloat();
+    dust = buffer.substring(buffer.indexOf("Dust density:") + 14, buffer.indexOf(" ug/m3")).toFloat();
+    mq2 = buffer.substring(buffer.indexOf("MQ2 ppm:") + 9, buffer.indexOf(" ppm\r\nMQ2")).toFloat();
+    mq135 = buffer.substring(buffer.indexOf("\nMQ135 ppm:") + 9, buffer.lastIndexOf("ppm")).toFloat();
   }
 }
 
@@ -122,7 +117,9 @@ void sendData() {
   param1["mq135"] = String(mq135, 2);
   param1["airTemp"] = String(temp, 2);
   param1["airHumid"] = String(humid, 2);
+  param1["Buffer"] = buffer;
   notify = 0;
+  buffer = "";
   String output;
   serializeJson(doc, output);
   socketIO.sendEVENT(output);
@@ -143,6 +140,7 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t length) 
       socketIO.send(sIOtype_CONNECT, "/");
       break;
     case sIOtype_EVENT:
+      USE_SERIAL.println(text1);
       if (text1.startsWith("[\"phone1\"")) {
         USE_SERIAL.printf("[IOc] phone 1 number change to: %s\n", payload);
         String text2 = text1.substring(11, 20);
