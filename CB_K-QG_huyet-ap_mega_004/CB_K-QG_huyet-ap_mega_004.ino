@@ -234,6 +234,12 @@ void loop() {
         EEPROM.write(0, tocdocai >> 8);
         EEPROM.write(1, tocdocai);
       }
+      key_check = data.indexOf("coi");
+      if (key_check != -1) {
+        digitalWrite(coi, LOW);
+        delay(5000);
+        digitalWrite(coi, HIGH);
+      }
     }
 #endif
     if (digitalRead(nutnhan2) == LOW) {  //nếu nhấp nút đỏ
@@ -427,8 +433,8 @@ void loop() {
       Serial3.print(dbp);
 #endif
     }
-    if (is_pressure_done) { //kết thức quá trình đo huyết áp
-      flag_huyetap_running = false; //reset các biến về giá trị ban đầu để sẵn sàng cho lần đo tiếp theo 
+    if (is_pressure_done) {          //kết thức quá trình đo huyết áp
+      flag_huyetap_running = false;  //reset các biến về giá trị ban đầu để sẵn sàng cho lần đo tiếp theo
       start = false;
       upper_pressure = 0.0;
       lower_pressure = 0.0;

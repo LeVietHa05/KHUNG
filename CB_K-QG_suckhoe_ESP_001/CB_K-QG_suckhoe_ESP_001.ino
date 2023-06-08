@@ -111,6 +111,7 @@ void sendData() {
   DynamicJsonDocument doc(1024);
   JsonArray array = doc.to<JsonArray>();
   array.add("message_suckhoe");
+  
   JsonObject param1 = array.createNestedObject();
   param1["temp"] = String(nhietdo, 2);
   param1["heart"] = String(nhiptim, 2);

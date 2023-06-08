@@ -86,6 +86,11 @@ void loop() {
     dust = buffer.substring(buffer.indexOf("Dust density:") + 14, buffer.indexOf(" ug/m3")).toFloat();
     mq2 = buffer.substring(buffer.indexOf("MQ2 ppm:") + 9, buffer.indexOf(" ppm\r\nMQ2")).toFloat();
     mq135 = buffer.substring(buffer.indexOf("\nMQ135 ppm:") + 9, buffer.lastIndexOf("ppm")).toFloat();
+    if (buffer.indexOf("Nghieng") != -1) {
+      notify = 1;
+      // guiTinNhan(phoneNumber1);
+      guiTinNhan(phoneNumber2);
+    }
   }
 }
 

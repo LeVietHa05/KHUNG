@@ -19,19 +19,16 @@ int tocDoNhoGiot, tocDoNhoGiotTam;
 // gia tri huyet ap tam truong, tam thu
 float hApTamTruong, hApTamThu;
 
-void setup()
-{
+void setup() {
   Serial.begin(115200);
   Serial.println();
 
-  if (WiFi.getMode() & WIFI_AP)
-  {
+  if (WiFi.getMode() & WIFI_AP) {
     WiFi.softAPdisconnect(true);
   }
   wifiMulti.addAP("AmericanStudy T1", "66668888");
   wifiMulti.addAP("Cút lộn xào me", "12345678");
-  while (wifiMulti.run() != WL_CONNECTED)
-  {
+  while (wifiMulti.run() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);
   }
@@ -41,87 +38,74 @@ void setup()
   Serial.println(WiFi.localIP());
 
   // ket noi server
-  socketIO.begin("csskvn.com", 80, "/socket.io/?EIO=4"); // /socket.io/?EIO=4
+  socketIO.begin("csskvn.com", 80, "/socket.io/?EIO=4");  // /socket.io/?EIO=4
   socketIO.onEvent(socketIOEvent);
 }
 
-void loop()
-{
+void loop() {
   String buffer = "";
   socketIO.loop();
-  while (Serial.available() > 0)
-  {
+  while (Serial.available() > 0) {
     buffer = Serial.readString();
-    if (buffer.indexOf("S0=") != -1)
-    {
+    if (buffer.indexOf("S0=") != -1) {
       tocDoNhoGiotTam = buffer.substring(buffer.indexOf("S0=") + 3).toInt();
-    }
-    else if (buffer.indexOf("S1=") != -1)
-    {
+    } else if (buffer.indexOf("S1=") != -1) {
       tocDoNhoGiot = buffer.substring(buffer.indexOf("S1=") + 3).toInt();
-    }
-    else if (buffer.indexOf("S2=") != -1)
-    {
+    } else if (buffer.indexOf("S2=") != -1) {
       hApTamThu = buffer.substring(buffer.indexOf("S2=") + 3, buffer.indexOf(",")).toInt();
       hApTamTruong = buffer.substring(buffer.indexOf(", S3=") + 5).toInt();
     }
   }
-  if (millis() - lastSendData > 3000)
-  {
+  if (millis() - lastSendData > 3000) {
     sendData();
     lastSendData = millis();
   }
 }
 
 // socket handler
-void socketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t length)
-{
+void socketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t length) {
   String text1 = (char *)payload;
-  switch (type)
-  {
-  case sIOtype_DISCONNECT:
-    Serial1.printf("[IOc] Disconnected!\n");
-    break;
-  case sIOtype_CONNECT:
-    Serial1.printf("[IOc] Connected to url: %s\n", payload);
-    // join default namespace (no auto join in Socket.IO V3)
-    socketIO.send(sIOtype_CONNECT, "/");
-    break;
-  case sIOtype_EVENT:
-    if (text1.startsWith("[\"S0\""))
-    {
-      Serial.print("S0=");
-      Serial.print(text1.substring(5, text1.indexOf("]")));
-    }
-    if (text1.startsWith("[\"message_suckhoe\"") {
-          if (text1.substring(text1.indexOf("Nghieng: 1")))
-          {
-            Serial.print("coi");
-          }
-        })
+  switch (type) {
+    case sIOtype_DISCONNECT:
+      Serial1.printf("[IOc] Disconnected!\n");
       break;
-  case sIOtype_ACK:
-    Serial1.printf("[IOc] get ack: %u\n", length);
-    hexdump(payload, length);
-    break;
-  case sIOtype_ERROR:
-    Serial1.printf("[IOc] get error: %u\n", length);
-    hexdump(payload, length);
-    break;
-  case sIOtype_BINARY_EVENT:
-    Serial1.printf("[IOc] get binary: %u\n", length);
-    hexdump(payload, length);
-    break;
-  case sIOtype_BINARY_ACK:
-    Serial1.printf("[IOc] get binary ack: %u\n", length);
-    hexdump(payload, length);
-    break;
+    case sIOtype_CONNECT:
+      Serial1.printf("[IOc] Connected to url: %s\n", payload);
+      // join default namespace (no auto join in Socket.IO V3)
+      socketIO.send(sIOtype_CONNECT, "/");
+      break;
+    case sIOtype_EVENT:
+      if (text1.startsWith("[\"S0\"")) {
+        Serial.print("S0=");
+        Serial.print(text1.substring(5, text1.indexOf("]")));
+      }
+      if (text1.startsWith("[\"message_suckhoe\"")) {
+        if (text1.indexOf("notify: 1") != -1) {
+          Serial.print("coi");
+        }
+      }
+      break;
+    case sIOtype_ACK:
+      Serial1.printf("[IOc] get ack: %u\n", length);
+      hexdump(payload, length);
+      break;
+    case sIOtype_ERROR:
+      Serial1.printf("[IOc] get error: %u\n", length);
+      hexdump(payload, length);
+      break;
+    case sIOtype_BINARY_EVENT:
+      Serial1.printf("[IOc] get binary: %u\n", length);
+      hexdump(payload, length);
+      break;
+    case sIOtype_BINARY_ACK:
+      Serial1.printf("[IOc] get binary ack: %u\n", length);
+      hexdump(payload, length);
+      break;
   }
 }
 
 // send data to server
-void sendData()
-{
+void sendData() {
   DynamicJsonDocument doc(1024);
   JsonArray array = doc.to<JsonArray>();
   array.add("message_huyetap");
